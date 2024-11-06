@@ -4,129 +4,281 @@
 -- alle Mitglieder
 -- all members
 
+SELECT * FROM member;
+
 -- 2
 -- alle Fahrzeuge
 -- all vehicles
+
+SELECT * FROM vehicle;
 
 -- 3
 -- alle Personenwagen
 -- all motor cars
 
+SELECT * FROM motorcar;
+
 -- 4
 -- alle Limousinen
 -- all limousines
+
+SELECT * FROM limousine;
 
 -- 5
 -- Aktuelles Datum und Uhrzeit
 -- current date and time
 
+SELECT current_timestamp;
+
 -- 6
 -- die vollen Namen aller Personen (Wenn nicht anders spezifiziert, ist ab jetzt mit “Name” immer der volle Name, d.h. “vorname nachname”, gemeint)
 -- the full names of all persons (unless specified otherwise, from now on the full name, “firstname lastname” is required whenever “name” is mentioned)
+
+SELECT firstname || ' ' || lastname AS full_name
+FROM person;
 
 -- 7
 -- die Namen aller persoenlichen Mitglieder
 -- the names of all person members
 
+SELECT firstname || ' ' || lastname AS full_name
+FROM personmember;
+
 -- 8
 -- die Namen und Heimatstationen der persoenlichen Mitglieder, sortiert nach Station
 -- the names and home location of the person members, in the order of the home locations
+
+SELECT
+    firstname || ' ' || lastname AS full_name,
+    homelocation
+FROM personmember
+ORDER BY homelocation;
 
 -- 9
 -- die Namen und Heimatstation der Genossenschaftsmitglieder, sortiert nach Namen der Heimatstation
 -- names and home locations of the coop members sorted by home location name
 
+SELECT
+    firstname || ' ' || lastname AS full_name,
+    name
+FROM coopmember AS c
+LEFT JOIN location AS l ON l.id = c.homelocation
+ORDER BY name;
+
 -- 10
 -- die Kennzeichen, Marken und Modelle aller Fahrzeuge
 -- the licenseplate, make, and model of all vehicles
+
+SELECT
+    licenseplate,
+    make,
+    model
+FROM vehicle;
 
 -- 11
 -- die Marken und Modelle der Fahrzeuge mit Namen der Heimatstation
 -- Make, model, and name of the home location of the vehicles
 
+SELECT
+    make,
+    model,
+    name
+FROM vehicle AS v
+JOIN location AS l ON l.id = v.home;
+
 -- 12
 -- die Marken und Modelle der Fahrzeuge mit dem Namen der Heimatstation. Auch die Fahrzeuge ohne Heimatstation sollen angezeigt werden.
 -- Make, model, and name of the home location of the vehicles. The make and model of vehicles without home location should be shown as well
+
+SELECT
+    make,
+    model,
+    name
+FROM vehicle AS v
+LEFT JOIN location AS l on l.id = v.home;
 
 -- 13
 -- die Marken und Modelle der Fahrzeuge mit Heimatstation. Auch die Fahrzeuge ohne Heimatstation und die Stationen ohne Fahrzeuge sollen angezeigt werden.
 -- Make, model, and name of the home location of the vehicles. The make and model of vehicles without home location as well as the locations without vehicles should be shown as well
 
+SELECT
+    make,
+    model,
+    name
+FROM vehicle AS v
+FULL OUTER JOIN location AS l on l.id = v.home;
+
 -- 14
 -- Fahrzeuge ohne Heimatstation
 -- Vehicles without a home location
+
+SELECT
+    *
+FROM vehicle
+WHERE home IS NULL;
 
 -- 15
 -- Stationen ohne Fahrzeuge
 -- Locations without vehicles
 
+SELECT *
+FROM location AS l
+FULL OUTER JOIN vehicle AS v ON v.home = l.id
+WHERE v.id IS NULL;
+
 -- 16
 -- die Kuerzel, Namen und Addressen der Stationen
 -- short name, long name, and address of the locations
+
+SELECT shortname, name, address
+FROM location;
 
 -- 17
 -- die Kuerzel, Namen und Orte der Stationen
 -- short name, long name, and city of the locations
 
+SELECT shortname, name, (address).city
+FROM location;
+
 -- 18
 -- die Reservationen des Fahrzeugs 'ZH-1020'
 -- the reservation of vehicle 'ZH-1020'
+
+SELECT r.*, v.licenseplate
+FROM reservation AS r
+LEFT JOIN vehicle AS v ON v.id = r.vehicle
+WHERE licenseplate = 'ZH-1020';
 
 -- 19
 -- die Reservationen des Mitglieds mit der Nummer 1000
 -- the reservations of the member with member number 1000
 
+SELECT r.*, membernr
+FROM reservation AS r
+LEFT JOIN member AS m ON m.id = r.member
+WHERE membernr = 1000;
+
 -- 20
 -- die offenen (zukünftigen) Reservationen des Mitglieds mit der Nummer 1000
 -- open (future) reservations of the member number 1000
+
+SELECT r.*, membernr, "interval"
+FROM reservation AS r
+LEFT JOIN member AS m ON m.id = r.member
+WHERE membernr = 1000
+AND (interval).begints > current_timestamp;
+
 
 -- 21
 -- alle Fahrzeuge in Zürich
 -- all vehicles whose home location is in the city of Zurich
 
+SELECT v.*, city
+FROM vehicle AS v
+LEFT JOIN location AS l ON v.home = l.id
+LEFT JOIN LATERAL (
+    SELECT (address).city AS city
+    ) ON TRUE
+WHERE city = 'Zuerich';
+
 -- 22
 -- die Anzahl Limousinen pro Station
 -- the locations and number of limousines at each location
+
+SELECT loc.id, loc.name, COUNT(limo.id) AS limo_count
+FROM location AS loc
+LEFT JOIN limousine AS limo ON limo.home = loc.id
+GROUP BY loc.id, loc.name;
 
 -- 23
 -- alle offenen (unbezahlten) Rechnungen
 -- all open invoices (unpaid)
 
+SELECT *
+FROM invoice
+WHERE ispaid = FALSE;
+
 -- 24
 -- alle ueberfaelligen Rechnungen
 -- all overdue invoices
+
+SELECT *
+FROM invoice
+WHERE duedate > '2024-10-10';
 
 -- 25
 -- alle Reservationen, die noch nicht in Rechnung gestellt wurden
 -- all reservations that have not yet been billed
 
+SELECT r.*
+FROM reservation AS r
+LEFT JOIN invoice AS i ON r.member = i.member
+WHERE i.id IS NULL;
+
 -- 26
 -- die Rechnungen des Mitglieds mit der Nummer 1000
 -- the invoices for member number 1000
+
+SELECT
+    i.*,
+    m.membernr
+FROM invoice AS i
+LEFT JOIN member AS m ON m.id = i.member
+WHERE membernr = 1000;
 
 -- 27
 -- die Kennzeichen der Fahrzeuge der Benutzungen
 -- the license plates of the vehicles which have been used (not only reserved)
 
+SELECT DISTINCT v.licenseplate
+FROM useofvehicle AS u
+LEFT JOIN reservation AS r ON u.reservation = r.resnumber
+LEFT JOIN vehicle AS v ON v.id = r.vehicle;
+
 -- 28
 -- die Namen der persoenlichen Mitglieder zusammen mit der Angabe, ob sie bereits einen Unfall hatten
 -- the names of the person members plus the indication if the members have had an accident
+
+SELECT
+    firstname,
+    lastname,
+    hadaccident
+FROM personmember;
 
 -- 29
 -- die Namen der persoenlichen Mitglieder zusammen mit der Angabe, ob sie bereits einen Unfall hatten (schoen formattiert)
 -- the names of the person members plus the indication if the members have had an accident (nicely formattted)
 
+SELECT
+    firstname || ' ' || lastname AS name,
+    hadaccident
+FROM personmember;
+
 -- 30
 -- welche persoenlichen  Mitglieder hatten bereits einen Unfall?
 -- which person members have had an accident?
+
+SELECT *
+FROM personmember
+WHERE hadaccident = TRUE;
 
 -- 31
 -- die den einzelnen Benutzungen zugrundeliegenden Kilometerpreise
 -- the correct price per kilometer for each use
 
+SELECT u.*,
+       i.total / u.kilometers::numeric AS price_per_kilometer
+FROM useofvehicle AS u
+LEFT JOIN invoice AS i ON u.invoice = i.invoicenumber;
+
 -- 32
 -- Entfernungsbasierte Kosten der Benutzungen
 -- the distance-based prices for the vehicle uses
+
+SELECT u.*,
+       i.total - u.fuelcosts AS distance_based_price
+FROM useofvehicle AS u
+LEFT JOIN invoice AS i ON u.invoice = i.invoicenumber;
 
 -- 33
 -- Die Summe der Benutzungsdauern pro Tag

@@ -211,6 +211,7 @@ LEFT JOIN invoice AS i ON u.invoice = i.invoicenumber;
 
 -- 32. the distance-based prices for the vehicle uses
 
-SELECT *
+SELECT u.*,
+       i.total - u.fuelcosts AS distance_based_price
 FROM useofvehicle AS u
-
+LEFT JOIN invoice AS i ON u.invoice = i.invoicenumber;
