@@ -284,57 +284,126 @@ LEFT JOIN invoice AS i ON u.invoice = i.invoicenumber;
 -- Die Summe der Benutzungsdauern pro Tag
 -- the sum (of hours) of vehicle uses per day
 
+SELECT* -- TODO
+FROM useofvehicle;
+
 -- 34
 -- Die durchschnittliche Benutzungsdauer
 -- The average duration of vehicle use
+
+SELECT ROUND(AVG(hours), 2)
+FROM useofvehicle;
 
 -- 35
 -- die kürzeste Entfernung, die während einer Benutzung zurückgelegt wurde
 -- The shortest distance (in kilometers) driven in a single vehicle use
 
+SELECT MIN(kilometers)
+FROM useofvehicle;
+
 -- 36
 -- die durchschnittliche Entfernung pro Benutzung
 -- the average distance driven per vehicle use
+
+SELECT ROUND(AVG(kilometers))
+FROM useofvehicle;
 
 -- 37
 -- die Summe der Entfernungen, die pro Fahrzeug zurückgelegt wurde
 -- the sum of distances driven per vehicle
 
+SELECT vehicle, SUM(kilometers) AS sum_distance_per_vehicle
+FROM useofvehicle AS u
+LEFT JOIN reservation AS r ON u.reservation = r.resnumber
+GROUP BY vehicle;
+
 -- 38
 -- die durchschnittliche Entfernungen, die pro Fahrzeug zurückgelegt wurde (in allen Reservationen)
 -- the average distance driven per vehicle (in all reservations)
+
+SELECT vehicle, ROUND(AVG(kilometers), 2) AS avg_distance_per_vehicle
+FROM useofvehicle AS u
+LEFT JOIN reservation AS r ON u.reservation = r.resnumber
+GROUP BY vehicle;
 
 -- 39
 -- die Namen und Jahresgebuehren der persoenlichen Mitglieder
 -- the names and yearly fees of the person members
 
+SELECT firstname || ' ' || lastname AS name, basicfee - reduction AS yearly_fees
+FROM personmember AS p
+LEFT JOIN memberfees AS m ON m.membertype = p.type;
+
+
 -- 40
 -- die Namen  und Jahresgebuehren der Firmenmitglieder
 -- the names and yearly fees of the company members
+
+SELECT companyname, basicfee - reduction AS yearly_fees
+FROM companymember AS p
+LEFT JOIN memberfees AS m ON m.membertype = p.type;
 
 -- 41
 -- die Namen und Jahresgebuehren der Genossenschaftsmitglieder
 -- the names  and yearly fees of the coop members
 
+SELECT firstname || ' ' || lastname AS name, COALESCE(basicfee, 0) - COALESCE(reduction, 0) AS yearly_fees
+FROM coopmember AS p
+LEFT JOIN memberfees AS m ON m.membertype = p.type;
+
 -- 42
 -- die Namen und Jahresgebuehren aller Mitglieder
 -- the names and yearly fees of all members
+
+SELECT firstname || ' ' || lastname AS name, COALESCE(basicfee, 0) - COALESCE(reduction, 0) AS yearly_fees
+FROM personmember AS p
+LEFT JOIN memberfees AS m ON m.membertype = p.type
+UNION ALL
+SELECT companyname, COALESCE(basicfee,0) - COALESCE(reduction,0) AS yearly_fees
+FROM companymember AS p
+LEFT JOIN memberfees AS m ON m.membertype = p.type
+UNION ALL
+SELECT firstname || ' ' || lastname AS name, COALESCE(basicfee, 0) - COALESCE(reduction, 0) AS yearly_fees
+FROM coopmember AS p
+LEFT JOIN memberfees AS m ON m.membertype = p.type;;
+
 
 -- 43
 -- alle saeumigen Mitglieder
 -- the members with due and open invoices
 
+SELECT m.*, ispaid
+FROM invoice AS i
+LEFT JOIN member AS m ON m.membernr = i.member
+WHERE ispaid = FALSE;
+
 -- 44
 -- alle saeumigen persoenlichen Mitglieder
 -- the person members with due and open invoices
+
+SELECT p.*, ispaid
+FROM invoice AS i
+LEFT JOIN personmember AS p ON p.membernr = i.member
+WHERE ispaid = FALSE;
+
 
 -- 45
 -- die Namen der saeumigen persoenlichen Mitglieder
 -- the full names of person members with due and open invoices
 
+SELECT p.firstname || ' ' || p.lastname AS name, ispaid
+FROM invoice AS i
+LEFT JOIN personmember AS p ON p.membernr = i.member
+WHERE ispaid = FALSE;
+
 -- 46
 -- die Namen der saeumigen persoenlichen Mitglieder (nun jedes Mitglied nur einmal !)
 -- the full names of person members with due and open invoices (make sure that each name appears only once)
+
+SELECT DISTINCT ON (membernr) p.firstname || ' ' || p.lastname AS name, ispaid
+FROM invoice AS i
+LEFT JOIN personmember AS p ON p.membernr = i.member
+WHERE ispaid = FALSE;
 
 -- 47
 -- alle persoenlichen Mitglieder, die in einem Ort wohnen, in dem es eine Station mit Limousinen gibt
